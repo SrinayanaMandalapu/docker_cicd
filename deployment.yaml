@@ -38,4 +38,4 @@ spec:
     - protocol: TCP
       port: 5000          # service port
       targetPort: 5000    # container port
-      nodePort: 30008     # external port (localhost:30008)
+      nodePort: 30009     # external port (localhost:30008)
