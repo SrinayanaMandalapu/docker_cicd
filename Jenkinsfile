@@ -3,7 +3,7 @@ pipeline{
     environment{
         DOCKERHUB_CREDENTIALS=credentials('dockerhub')
         IMAGE_NAME='srinayana20/docker_cicd'
-        GIT_REPO='https://github.com/deepthisharanya1615/dev2int'
+        GIT_REPO='https://github.com/SrinayanaMandalapu/docker_cicd'
         BRANCH='main'
     }
 
