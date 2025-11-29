@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-cicd-deployment      # must match Jenkinsfile rollout stage
+  labels:
+    app: docker-cicd
+spec:
+  replicas: 2                       # you can scale if needed
+  selector:
+    matchLabels:
+      app: docker-cicd
+  template:
+    metadata:
+      labels:
+        app: docker-cicd
+    spec:
+      containers:
+      - name: docker-cicd-container
+        image: srinayana20/docker_cicd:latest   # must match Jenkinsfile
+        imagePullPolicy: Always                  # IMPORTANT for latest tag
+        ports:
+        - containerPort: 5000                    # change if your app uses another port
+        env:
+        - name: FLASK_ENV
+          value: "production"
+        - name: PORT
+          value: "5000"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docker-cicd-service
+spec:
+  type: NodePort          # good for local access on Docker Desktop
+  selector:
+    app: docker-cicd
+  ports:
+    - protocol: TCP
+      port: 5000          # service port
+      targetPort: 5000    # container port
+      nodePort: 30008     # external port (localhost:30008)
