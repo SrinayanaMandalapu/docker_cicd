@@ -2,6 +2,8 @@ pipeline {
     agent any
 
     environment {
+        PYTHON = "C:\\Users\\manda\\AppData\\Local\\Programs\\Python\\Python312" 
+        PATH = "${PYTHON};${PYTHON}\\Scripts;${env.PATH}"
         // Jenkins credentials for Docker Hub
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
 
