@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        // Jenkins credentials ID for your Docker Hub username/password
+        // Jenkins credentials for Docker Hub
         DOCKERHUB_CREDENTIALS = credentials('dockerhub')
 
-        // Docker image (no tag – we'll append :BUILD_NUMBER or :latest)
+        // Docker image name
         IMAGE_NAME  = 'srinayana20/docker_cicd'
 
         // Git repo details
@@ -14,13 +14,14 @@ pipeline {
 
         // Kubernetes details
         K8S_NAMESPACE  = 'default'
-        K8S_MANIFEST   = 'deployment.yaml'     // path in your repo
-        K8S_DEPLOYMENT = 'docker-cicd-deployment'  // must match metadata.name in Deployment
-        K8S_CONTAINER  = 'docker-cicd-container'   // must match container name in Deployment
+        K8S_DEPLOYMENT = 'docker-cicd-deployment'
+        K8S_CONTAINER  = 'docker-cicd-container'
+
+        // Path to kubeconfig (adjust for your Jenkins node)
+        KUBECONFIG = 'C:\\Users\\manda\\.kube\\config'
     }
 
     stages {
-
         stage('Checkout Source') {
             steps {
                 echo 'Cloning Git repository...'
@@ -28,11 +29,18 @@ pipeline {
             }
         }
 
+        stage('Install Dependencies (Build)') {
+            steps {
+                echo 'Installing Python dependencies using pip...'
+                // For Linux agents, use 'sh "pip install -r requirements.txt"'
+                bat "pip install -r requirements.txt"
+            }
+        }
+
         stage('Build Docker Image') {
             steps {
                 script {
                     echo "Building Docker image: ${IMAGE_NAME}:${BUILD_NUMBER}"
-                    // Build with a unique tag for each build
                     bat "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
                 }
             }
@@ -58,17 +66,19 @@ pipeline {
             steps {
                 script {
                     echo "Applying Kubernetes manifests..."
-                    // Ensure deployment & service exist (create/update)
-                    bat "kubectl apply -f ${K8S_MANIFEST} -n ${K8S_NAMESPACE}"
 
-                    echo "Updating deployment image to ${IMAGE_NAME}:${BUILD_NUMBER}..."
-                    // Update the image in the existing deployment
+                    // 1) Create/Update deployment + service from YAML
+                    bat "kubectl apply -f deployment.yaml -n ${K8S_NAMESPACE} --validate=false"
+
+                    // 2) Update deployment image to the new tag
+                    echo "Updating image in Kubernetes deployment..."
                     bat """
                         kubectl set image deployment/${K8S_DEPLOYMENT} \
                         ${K8S_CONTAINER}=${IMAGE_NAME}:${BUILD_NUMBER} \
                         -n ${K8S_NAMESPACE}
                     """
 
+                    // 3) Wait until rollout succeeds
                     echo "Waiting for rollout to complete..."
                     bat "kubectl rollout status deployment/${K8S_DEPLOYMENT} -n ${K8S_NAMESPACE}"
                 }
